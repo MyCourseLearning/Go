@@ -1,13 +1,16 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/gin-gonic/gin"
 )
 
 type SubTopic struct {
 	ID     string `json:"id"`
+	Title  string `json:"title"`
+	Amount int    `json:"amount"`
+}
+
+type UpdateSupTopic struct {
 	Title  string `json:"title"`
 	Amount int    `json:"amount"`
 }
@@ -66,27 +69,101 @@ func getByID(c *gin.Context) {
 }
 
 func postHello(c *gin.Context) {
-	var body SubTopic
-	test := c.ShouldBindBodyWithJSON(&body)
-	fmt.Println("test", test)
-	if err := c.ShouldBindBodyWithJSON(&body); err != nil {
-		c.JSON(400, gin.H{"message": "invalid request"})
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(400, gin.H{"message": "id is required"})
 		return
 	}
+	var newSubTopic SubTopic
+	if err := c.ShouldBindJSON(&newSubTopic); err != nil {
+		c.JSON(400, gin.H{"message": "invalid input"})
+		return
+	}
+	for _, r := range data {
+		if id == r.ID {
+			r.SubTopic = append(r.SubTopic, newSubTopic)
+			c.JSON(200, r)
+			return
+		}
+	}
+	c.JSON(404, gin.H{"message": "not found"})
+}
 
-	fmt.Println("Received:", body)
-	data[1].SubTopic = append(data[1].SubTopic, SubTopic{
-		ID:     body.ID,
-		Title:  body.Title,
-		Amount: body.Amount,
-	})
-	c.JSON(200, data)
+func updateHello(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(400, gin.H{"message": "id is required"})
+		return
+	}
+	subID := c.Param("sub_id")
+	if subID == "" {
+		c.JSON(400, gin.H{"message": "sub_id is required"})
+		return
+	}
+	var newSubTopic UpdateSupTopic
+	if err := c.ShouldBindJSON(&newSubTopic); err != nil {
+		c.JSON(400, gin.H{"message": "invalid input"})
+		return
+	}
+	var index int = -1
+	for i, r := range data {
+		if id == r.ID {
+			index = i
+		}
+	}
+	if index == -1 {
+		c.JSON(404, gin.H{"message": "not found"})
+		return
+	}
+	for i, sub := range data[index].SubTopic {
+		if sub.ID == subID {
+			sub.Title = newSubTopic.Title
+			sub.Amount = newSubTopic.Amount
+			data[index].SubTopic[i] = sub
+			c.JSON(200, data[index])
+			return
+		}
+	}
+	c.JSON(404, gin.H{"message": "sub topic not found"})
+}
+
+func deleteHello(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(400, gin.H{"message": "id is required"})
+		return
+	}
+	subID := c.Param("sub_id")
+	if subID == "" {
+		c.JSON(400, gin.H{"message": "sub_id is required"})
+		return
+	}
+	var index int = -1
+	for i, r := range data {
+		if id == r.ID {
+			index = i
+		}
+	}
+	if index == -1 {
+		c.JSON(404, gin.H{"message": "not found"})
+		return
+	}
+	for i, sub := range data[index].SubTopic {
+		if sub.ID == subID {
+			data[index].SubTopic = append(data[index].SubTopic[:i], data[index].SubTopic[i+1:]...)
+			c.JSON(200, data[index])
+			return
+		}
+	}
+	c.JSON(404, gin.H{"message": "sub topic not found"})
 }
 
 func main() {
 	server := gin.Default()
 	server.GET("/hello", getHello)
 	server.GET("/hello/:id", getByID)
-	server.POST("/hello", postHello)
+	server.POST("/hello/:id", postHello)
+	server.PUT("/hello/:id/:sub_id", updateHello)
+	server.DELETE("/hello/:id/:sub_id", deleteHello)
 	server.Run(":8080")
 }
