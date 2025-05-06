@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"test/model"
 
 	"github.com/gin-gonic/gin"
@@ -162,20 +163,54 @@ func deleteHello(c *gin.Context) {
 	c.JSON(404, gin.H{"message": "sub topic not found"})
 }
 
+type UserResponse struct {
+	ID        string `json:"id"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Email     string `json:"email"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
+}
+
+var dbInstant *gorm.DB
+
+func getUsers(c *gin.Context) {
+	var users []model.UserModel
+	if err := dbInstant.Model(&model.UserModel{}).Find(&users).Error; err != nil {
+		fmt.Println(err)
+		c.JSON(500, gin.H{"message": "failed to get users"})
+		return
+	}
+	var userResponse []UserResponse = []UserResponse{}
+	for _, user := range users {
+		userResponse = append(userResponse, UserResponse{
+			ID:        user.ID,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+			Email:     user.Email,
+			CreatedAt: user.CreatedAt.String(),
+			UpdatedAt: user.UpdatedAt.String(),
+		})
+	}
+	c.JSON(200, userResponse)
+}
+
 func main() {
 	dsn := "user:user_password@tcp(localhost:3306)/my_database?charset=utf8mb4&parseTime=True&loc=Local"
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}
+	dbInstant = db
 	// db.Migrator().DropTable(&model.UserModel{})
-	db.AutoMigrate(&model.UserModel{})
+	// db.AutoMigrate(&model.UserModel{})
 
 	server := gin.Default()
-	server.GET("/hello", getHello)
-	server.GET("/hello/:id", getByID)
-	server.POST("/hello/:id", postHello)
-	server.PUT("/hello/:id/:sub_id", updateHello)
-	server.DELETE("/hello/:id/:sub_id", deleteHello)
+	// server.GET("/hello", getHello)
+	// server.GET("/hello/:id", getByID)
+	// server.POST("/hello/:id", postHello)
+	// server.PUT("/hello/:id/:sub_id", updateHello)
+	// server.DELETE("/hello/:id/:sub_id", deleteHello)
+	server.GET("user", getUsers)
 	server.Run(":8080")
 }
