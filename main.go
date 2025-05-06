@@ -1,7 +1,11 @@
 package main
 
 import (
+	"test/model"
+
 	"github.com/gin-gonic/gin"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 type SubTopic struct {
@@ -159,6 +163,14 @@ func deleteHello(c *gin.Context) {
 }
 
 func main() {
+	dsn := "user:user_password@tcp(localhost:3306)/my_database?charset=utf8mb4&parseTime=True&loc=Local"
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+	// db.Migrator().DropTable(&model.UserModel{})
+	db.AutoMigrate(&model.UserModel{})
+
 	server := gin.Default()
 	server.GET("/hello", getHello)
 	server.GET("/hello/:id", getByID)
