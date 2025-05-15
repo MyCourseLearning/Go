@@ -3,6 +3,7 @@ package main
 import (
 	"db-excercise/conf"
 	"db-excercise/model"
+	food "db-excercise/modules2/Food"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
@@ -189,11 +190,15 @@ func main() {
 	}
 	dbInstant = db
 	server := gin.Default()
-	server.POST("/category", createCategory)
-	server.GET("/food_ingredients", getListFoodIngredients)
-	server.GET("/count_of_each_category", getCountOfEachCategoryMoreComplexQuery)
-	server.GET("/no_need", NoNeed)
-	server.GET("/no_need_egg", NoNeedEgg)
-	server.GET("/no_need_miso", NoNeedMiso)
+	foodRepo := food.NewFoodRepository(db)
+	foodService := food.NewFoodService(foodRepo)
+	foodController := food.NewFoodController(foodService)
+	server.GET("/food", foodController.GetAll)
+	// server.POST("/category", createCategory)
+	// server.GET("/food_ingredients", getListFoodIngredients)
+	// server.GET("/count_of_each_category", getCountOfEachCategoryMoreComplexQuery)
+	// server.GET("/no_need", NoNeed)
+	// server.GET("/no_need_egg", NoNeedEgg)
+	// server.GET("/no_need_miso", NoNeedMiso)
 	server.Run(":8080")
 }
